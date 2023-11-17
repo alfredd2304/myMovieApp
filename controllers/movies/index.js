@@ -6,7 +6,7 @@ const User = require("../../models/users");
 
 
 router.post("/list/all", (req, res) => {
-    res.send("endpoint para ver todas las listas de peliculas")
+    
 })
 
 router.post('/list/addMovie', authGuard, async (req, res) => {
@@ -38,7 +38,7 @@ router.post('/list/addMovie', authGuard, async (req, res) => {
   
       // Añade la referencia al ID de la nueva película al array 'movies' del usuario
       user.movies.push(newMovie._id);
-  
+
       // Guarda los cambios en el usuario
       await user.save();
   
@@ -49,4 +49,34 @@ router.post('/list/addMovie', authGuard, async (req, res) => {
     }
   });
   
+  router.delete('/list/deleteMovie/:movieId', authGuard, async (req, res) => {
+    try {
+      const userId = req.user._id;
+      const user = await User.findById(userId);
+      if (!user) {
+        return res.status(404).json({ message: 'Usuario no encontrado.' });
+      }
+      // Obtiene el ID de la película desde los parámetros de la ruta
+      const movieId = req.params.movieId;
+      // Verifica si la película está en la lista del usuario
+      const movieIndex = user.movies.indexOf(movieId);
+      if (movieIndex === -1) {
+        return res.status(404).json({ message: 'Película no encontrada en la lista del usuario.' });
+      }
+
+      // Elimina la película del array 'movies' del usuario
+      user.movies.splice(movieIndex, 1);
+
+      await user.save();
+      // Elimina la pelicula de la base de datos
+      await Movie.findByIdAndDelete(movieId);
+  
+      res.status(200).json({ message: 'Película eliminada correctamente.' });
+
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: 'Error interno del servidor.' });
+    }
+  });
+
   module.exports = router;
