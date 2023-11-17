@@ -4,15 +4,22 @@ const express = require("express");
 const app = express();
 const port = 3003;
 
-app.use(express.json());
-app.use(express.urlencoded());
+const main = async () => {
+    app.use(express.json());
+    app.use(express.urlencoded({extended: true}));
 
-const accountsController = require("./controllers/accounts");
-const moviesController = require("./controllers/movies");
+    const accountsController = require("./controllers/accounts");
+    const moviesController = require("./controllers/movies");
+    const db = require("./db/client");
 
-app.use("/accounts", accountsController);
-app.use("/movies", moviesController);
+    await db.connectToMongoDB();
 
-app.listen(port, () => {
-    console.log("Server funcionando en el puerto: ", port);
-})
+    app.use("/accounts", accountsController);
+    app.use("/movies", moviesController);
+
+    app.listen(port, () => {
+        console.log("Server funcionando en el puerto: ", port);
+    });
+};
+
+main();
