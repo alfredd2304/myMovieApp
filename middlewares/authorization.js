@@ -1,29 +1,26 @@
+// middleware/authGuard.js
 const jwt = require('jsonwebtoken');
 
 const authGuard = (req, res, next) => {
-    const { authorization } = req.headers;
+  const { authorization } = req.headers;
 
-    if (!authorization) {
-        return res.status(401).json({ message: 'Token no proporcionado. Acceso no autorizado.' });
-    }
+  if (!authorization) {
+    return res.status(400).send("No tiene permisos para acceder a este recurso");
+  }
 
-    try {
-        const token = authorization.split(" ")[1];
-        req.jwt_payload = jwt.verify(token, process.env.JWT_SECRET_KEY);
-        next(); 
-    } catch (err) {
-        console.error(err);
+  try {
+    const token = authorization.split(" ")[1];
+    const decodedToken = jwt.verify(token, process.env.JWT_SECRET_KEY);
 
-        if (err instanceof jwt.JsonWebTokenError) {
-            return res.status(401).json({ message: 'Token inválido. Acceso no autorizado.' });
-        }
+    console.log('Decoded Token:', decodedToken);
 
-        if (err instanceof jwt.TokenExpiredError) {
-            return res.status(401).json({ message: 'Token expirado. Acceso no autorizado.' });
-        }
-
-        res.status(401).json({ message: 'Error de autenticación. Acceso no autorizado.' });
-    }
-}
+    // Asegúrate de que el payload incluya el ID del usuario
+    req.user = decodedToken;
+    next();
+  } catch (err) {
+    console.error(err);
+    res.status(401).send("No tiene permisos para usar este recurso");
+  }
+};
 
 module.exports = authGuard;

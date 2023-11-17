@@ -1,10 +1,11 @@
 const jwt = require("jsonwebtoken");
 const User = require("../../models/users");
 
-const createToken = async (user, role) => {
+const createToken = async (user, role, userId) => {
     const tokenPayLoad = {
         "username": user,
-        "role": role
+        "role": role,
+        "_id": userId
     }
     const token = await jwt.sign(
         tokenPayLoad,
@@ -33,7 +34,7 @@ const loginUser = async (username, password) => {
     const passwordMatch = await user.comparePassword(password);
     if (!passwordMatch) throw new Error("contraseña invalida");
 
-    return await createToken(username, "normal")
+    return await createToken(username, "normal", user._id)
 };
 
 module.exports = {createToken, registerUser, loginUser};

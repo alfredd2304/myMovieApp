@@ -1,6 +1,7 @@
 const {Schema, model} = require("mongoose");
 const {compare, genSalt, hash} = require("bcrypt");
-
+const mongoose = require("mongoose");
+const Movie = require("./myMovieList");
 const userSchema = new Schema({
     email: {
         type: String,
@@ -23,7 +24,11 @@ const userSchema = new Schema({
     password: {
         type: String,
         required: [true, "Debe ingresar una contraseña"]
-    }
+    },
+    movies: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Movie',
+      }],
 },
 {
     timestamps: {createdAt: "creationDate", updatedAt: "lastUpdate"}
