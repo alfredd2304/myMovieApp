@@ -29,6 +29,13 @@ const userSchema = new Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Movie',
       }],
+    list:{
+        type: String,
+        required: [true, "Asegurese de ingresar el nombre de su lista"]
+    },
+    rating:{
+        type: Number
+    }
 },
 {
     timestamps: {createdAt: "creationDate", updatedAt: "lastUpdate"}

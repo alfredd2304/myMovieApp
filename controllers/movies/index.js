@@ -5,9 +5,47 @@ const router = express.Router();
 const User = require("../../models/users");
 
 
-router.post("/list/all", (req, res) => {
-    
-})
+router.get('/lists/:userId', async (req, res) => {
+    try {
+      const userId = req.params.userId;
+      // Encuentra al usuario por su ID
+      const user = await User.findById(userId).populate('movies');
+  
+      if (!user) {
+        return res.status(404).json({ message: 'Usuario no encontrado.' });
+      }
+      
+      res.status(200).json({
+        movies: user.movies.map(movie => ({
+          title: movie.title,
+          date: new Date(movie.date).getFullYear(),
+          deleteMovie: `/movies/list/deleteMovie/${movie._id}`
+        })),message: "metodo DELETE para eliminar peliculas"
+      });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: 'Error interno del servidor.' });
+    }
+  });
+
+  router.get('/lists', async (req, res) => {
+    try {
+      // Encuentra todos los usuarios
+      const users = await User.find().select('nickname rating list _id');
+  
+      const lists = users.map(user => ({
+        list: user.list,
+        nickname: user.nickname,
+        rating: user.rating,
+        IR:`/movies/lists/${user._id}`
+      }));
+  
+      res.status(200).json({lists});
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: 'Error interno del servidor.' });
+    }
+  });
 
 router.post('/list/addMovie', authGuard, async (req, res) => {
     try {
@@ -42,7 +80,8 @@ router.post('/list/addMovie', authGuard, async (req, res) => {
       // Guarda los cambios en el usuario
       await user.save();
   
-      res.status(201).json({ message: 'Película agregada correctamente.' });
+      res.status(201).json({ message: `${newMovie.title} agregada correctamente.`,
+                            myLIST: `/movies/lists/${userId}`});
     } catch (error) {
       console.error(error);
       res.status(500).json({ error: 'Error interno del servidor.' });
@@ -56,23 +95,19 @@ router.post('/list/addMovie', authGuard, async (req, res) => {
       if (!user) {
         return res.status(404).json({ message: 'Usuario no encontrado.' });
       }
-      // Obtiene el ID de la película desde los parámetros de la ruta
       const movieId = req.params.movieId;
       // Verifica si la película está en la lista del usuario
       const movieIndex = user.movies.indexOf(movieId);
       if (movieIndex === -1) {
         return res.status(404).json({ message: 'Película no encontrada en la lista del usuario.' });
       }
-
       // Elimina la película del array 'movies' del usuario
       user.movies.splice(movieIndex, 1);
-
       await user.save();
       // Elimina la pelicula de la base de datos
       await Movie.findByIdAndDelete(movieId);
-  
       res.status(200).json({ message: 'Película eliminada correctamente.' });
-
+      
     } catch (error) {
       console.error(error);
       res.status(500).json({ error: 'Error interno del servidor.' });
