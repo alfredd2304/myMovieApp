@@ -18,18 +18,23 @@ router.post("/register", async (req, res) => {
 router.post("/login", async (req, res) => {
     const {user, password} = req.body;
 
-    try{
+    try {
         const accessToken = await accountsMethods.loginUser(user, password);
-        if(!accessToken) throw new Error("Token invalido");
-        res.status(200).json({message: "Te has logeado exitosamente... por favor copia y pega el siguiente token en el apartado TOKEN, dentro del encabezado Authorization", 
-                            token:accessToken,
-                            addMovies:"metodo POST /movies/list/addMovie",
-                            rateMovies: "()"});
-    } catch(error){
+        if (!accessToken) throw new Error("Token inválido");
+        
+        // Establecer el token en el encabezado Authorization de la solicitud
+        res.cookie('Authorization', `Bearer ${accessToken}`, { httpOnly: true });
+        
+        res.status(200).json({
+            message: "Te has logeado exitosamente...", 
+            addMovies: "metodo POST /movies/list/addMovie",
+            rateMovies: "()",
+        });
+    } catch (error) {
         res.status(404).send("Nombre de usuario o contraseña incorrectas");
     }
-
 });
+
 
 module.exports = router;
 

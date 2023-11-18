@@ -4,7 +4,6 @@ const  Movie  = require("../../models/myMovieList");
 const router = express.Router();
 const User = require("../../models/users");
 
-
 router.get('/lists/:userId', async (req, res) => {
     try {
       const userId = req.params.userId;
@@ -50,20 +49,16 @@ router.get('/lists/:userId', async (req, res) => {
 router.post('/list/addMovie', authGuard, async (req, res) => {
     try {
       const { title, date } = req.body;
-  
       if (!title || !date) {
         return res.status(400).json({ message: 'Se requieren título y fecha para agregar la película.' });
       }
-  
       // Crea una nueva película
       const newMovie = new Movie({
         title,
         date: new Date(date),
       });
-  
       // Guarda la película en la base de datos
       await newMovie.save();
-  
       // Obtiene el ID del usuario directamente desde req.user._id
       const userId = req.user._id;
       console.log(userId);

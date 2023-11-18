@@ -1,23 +1,21 @@
 const jwt = require('jsonwebtoken');
 
 const authGuard = (req, res, next) => {
-  const { authorization } = req.headers;
-
-  if (!authorization) {
-    return res.status(400).send("No tiene permisos para acceder a este recurso");
+  const tokenFromCookie = req.headers.cookie
+  if (!tokenFromCookie) {
+    return res.status(401).json({ message: 'No tiene permisos para usar este recurso.' });
   }
-
+  // Extraer solo el token real eliminando "Bearer%20"
+  const token = tokenFromCookie.replace('Authorization=Bearer%20', '');
   try {
-    const token = authorization.split(" ")[1];
     const decodedToken = jwt.verify(token, process.env.JWT_SECRET_KEY);
-
-    console.log('Decoded Token:', decodedToken);
     req.user = decodedToken;
     next();
   } catch (err) {
     console.error(err);
-    res.status(401).send("No tiene permisos para usar este recurso");
+    res.status(401).json({ message: 'No tiene permisos para usar este recurso.' });
   }
 };
+
 
 module.exports = authGuard;
