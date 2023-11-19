@@ -3,29 +3,48 @@ const authGuard = require("../../middlewares/authorization");
 const  Movie  = require("../../models/myMovieList");
 const router = express.Router();
 const User = require("../../models/users");
+const jwt = require("jsonwebtoken");
 
+// endpoint para ver lista de usuario especifico
 router.get('/lists/:userId', async (req, res) => {
     try {
       const userId = req.params.userId;
-      // Encuentra al usuario por su ID
+      // extrae encabezado cookie
+      const tokenFromCookie = req.headers.cookie;
+      
       const user = await User.findById(userId).populate('movies');
-  
       if (!user) {
         return res.status(404).json({ message: 'Usuario no encontrado.' });
       }
-      
-      res.status(200).json({
-        movies: user.movies.map(movie => ({
+      const formattedMovies = user.movies.map(movie => {
+        const formattedMovie = {
           title: movie.title,
           date: new Date(movie.date).getFullYear(),
-          deleteMovie: `/movies/list/deleteMovie/${movie._id}`
-        })),message: "metodo DELETE para eliminar peliculas"
+        };
+        // si encuentra cookie lee el token para verificar ID
+        if (tokenFromCookie) {
+          try {
+            const token = tokenFromCookie.replace('Authorization=Bearer%20', '');
+            const decodedToken = jwt.verify(token, process.env.JWT_SECRET_KEY);
+            
+            if (decodedToken._id === userId) {
+              // Si es el mismo ID de usuario, añadimos la propiedad deleteMovie
+              formattedMovie.deleteMovie = `/movies/list/deleteMovie/${movie._id}`;
+            }
+          } catch (error) {
+            console.error('Error al verificar el token:', error);
+          }
+        }
+        return formattedMovie;
       });
+  
+      res.status(200).json({ movies: formattedMovies });
     } catch (error) {
       console.error(error);
       res.status(500).json({ error: 'Error interno del servidor.' });
     }
   });
+  
 
   router.get('/lists', async (req, res) => {
     try {
@@ -39,7 +58,7 @@ router.get('/lists/:userId', async (req, res) => {
         IR:`/movies/lists/${user._id}`
       }));
   
-      res.status(200).json({lists});
+      res.status(200).json({lists, message: "PARA CALIFICAR LISTAS /movies/lists/rate/(:id_lista)"});
     } catch (error) {
       console.error(error);
       res.status(500).json({ error: 'Error interno del servidor.' });
@@ -61,7 +80,6 @@ router.post('/list/addMovie', authGuard, async (req, res) => {
       await newMovie.save();
       // Obtiene el ID del usuario directamente desde req.user._id
       const userId = req.user._id;
-      console.log(userId);
       // Encuentra al usuario por su ID
       const user = await User.findById(userId);
   
@@ -69,10 +87,10 @@ router.post('/list/addMovie', authGuard, async (req, res) => {
         return res.status(404).json({ message: 'Usuario no encontrado.' });
       }
   
-      // Añade la referencia al ID de la nueva película al array 'movies' del usuario
+      //Añade la referencia al ID de la nueva película al array 'movies' del usuario
       user.movies.push(newMovie._id);
 
-      // Guarda los cambios en el usuario
+      //Guarda los cambios en el usuario
       await user.save();
   
       res.status(201).json({ message: `${newMovie.title} agregada correctamente.`,
@@ -83,6 +101,49 @@ router.post('/list/addMovie', authGuard, async (req, res) => {
     }
   });
   
+router.post('/lists/rate/:userId', authGuard, async (req, res) => {
+    try {
+      const userId = req.params.userId;
+      const { rating } = req.body;
+      const currentUserID = req.user._id;
+      if (userId === currentUserID) {
+        return res.status(400).json({ message: 'No puedes calificar tu propia lista.' });
+      }
+
+      if (!rating || rating < 1 || rating > 5) {
+        return res.status(400).json({ message: 'La calificación debe estar entre 1 y 5.' });
+      }
+  
+      // Encuentra al usuario por su ID
+      const userToRate = await User.findById(userId);
+      if (!userToRate) {
+        return res.status(404).json({ message: 'Usuario no encontrado.' });
+      }
+      // Verificamos si el usuario ya ha calificado la lista
+      const hasRated = userToRate.ratings.some(r => r.userId.equals(req.user._id));
+      if (hasRated) {
+      return res.status(400).json({ message: 'Ya ha calificado la lista de este usuario.' });
+        }
+  
+      // Añade la calificación a la lista de calificaciones del usuario
+      userToRate.ratings.push({
+        userId: req.user._id,
+        rating,
+      });
+      // Calcula la nueva calificación promedio del usuario
+      const totalRatings = userToRate.ratings.length;
+      const totalRatingSum = userToRate.ratings.reduce((sum, r) => sum + r.rating, 0);
+      userToRate.rating = totalRatingSum / totalRatings;
+      
+      await userToRate.save();
+  
+      res.status(200).json({ message: 'Calificación agregada correctamente.' });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: 'Error interno del servidor.' });
+    }
+  });
+
   router.delete('/list/deleteMovie/:movieId', authGuard, async (req, res) => {
     try {
       const userId = req.user._id;

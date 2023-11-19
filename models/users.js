@@ -34,8 +34,22 @@ const userSchema = new Schema({
         required: [true, "Asegurese de ingresar el nombre de su lista"]
     },
     rating:{
-        type: Number
-    }
+        type: Number,
+        default: 0
+    },
+    ratings:[
+        {
+          userId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User',
+          },
+          rating: {
+            type: Number,
+            required: true,
+          },
+        },
+      ],
+
 },
 {
     timestamps: {createdAt: "creationDate", updatedAt: "lastUpdate"}
